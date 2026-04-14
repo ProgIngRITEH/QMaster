@@ -59,17 +59,23 @@ export function SignUpForm({
     }
 
     try {
+      const displayName = email.split("@")[0];
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            display_name: displayName,
+            full_name: displayName,
+          },
         },
       });
 
       if (error) throw error;
 
-      router.push("/auth/sign-up-success");
+      router.push("/");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

@@ -31,7 +31,7 @@ export function AuthButton() {
 
   return user ? (
     <div className="flex items-center gap-4">
-      <span className="text-sm">Hey, {user.email}!</span>
+      <span className="text-sm">Hey, {user?.user_metadata?.full_name}!</span>
       <LogoutButton />
     </div>
   ) : (
