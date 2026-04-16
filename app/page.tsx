@@ -37,7 +37,7 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           NAVBAR
       ════════════════════════════════════════ */}
-      <header className="relative z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl sticky top-0">
+      <header className="z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl sticky top-0">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -60,13 +60,18 @@ export default function LandingPage() {
 
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-8">
-            {["Features", "How it works", "Pricing"].map((item) => (
+            {[
+              { name: "Features", href: "#features" },
+              { name: "How it works", href: "#how-it-works" },
+              { name: "Testimonials", href: "#testimonials" }, 
+              { name: "Pricing", href: "#pricing" }, 
+            ].map((item) => (
               <Link
-                key={item}
-                href="#"
+                key={item.name}
+                href={item.href}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
               >
-                {item}
+                {item.name}
               </Link>
             ))}
           </nav>
@@ -110,19 +115,21 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              size="lg"
-              className="h-12 px-8 text-base font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25 transition-all duration-200"
-            >
-              Start for free
-              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Button>
+            <Link href="/auth/sign-up">
+              <Button
+                size="lg" 
+                className="h-12 px-8 text-base font-semibold cursor-pointer bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25 transition-all duration-200"
+              >
+                Start for free
+                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Button>
+            </Link>
             <Button
               size="lg"
               variant="outline"
-              className="h-12 px-8 text-base font-semibold border-border/60 hover:bg-muted/50"
+              className="h-12 px-8 text-base font-semibold cursor-pointer border-border/60 hover:bg-muted/50"
             >
               See demo
             </Button>
@@ -227,7 +234,7 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           FEATURES
       ════════════════════════════════════════ */}
-      <section className="relative z-10 py-28 px-6 border-t border-border/30">
+      <section className="relative z-10 py-28 px-6 border-t border-border/30" id="features"> 
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground mb-3">Everything you need</p>
@@ -336,7 +343,7 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           HOW IT WORKS
       ════════════════════════════════════════ */}
-      <section className="relative z-10 py-28 px-6 border-t border-border/30">
+      <section className="relative z-10 py-28 px-6 border-t border-border/30" id="how-it-works">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground mb-3">How it works</p>
@@ -399,7 +406,7 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           SOCIAL PROOF
       ════════════════════════════════════════ */}
-      <section className="relative z-10 py-20 px-6 border-t border-border/30">
+      <section className="relative z-10 py-20 px-6 border-t border-border/30" id="testimonials">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-3 gap-5">
             {[
@@ -441,6 +448,101 @@ export default function LandingPage() {
       </section>
 
       {/* ════════════════════════════════════════
+        PRICING
+      ════════════════════════════════════════ */}
+      <section className="relative z-10 py-28 px-6 border-t border-border/30" id="pricing">
+        <div className="max-w-6xl mx-auto text-center mb-16">
+          <h2
+            className="text-4xl md:text-5xl font-black tracking-tight mb-4"
+            style={{ letterSpacing: "-0.03em" }}
+          >
+            Simple, transparent pricing
+          </h2>
+          <p className="text-muted-foreground">
+            Choose the plan that fits your business needs
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          
+          {/* FREE */}
+          <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-violet-500/20 rounded-3xl blur-2xl" />
+            
+            <div className="relative">
+              <h3 className="text-xl font-semibold mb-2">Free</h3>
+              <p className="text-muted-foreground mb-6">Perfect to get started</p>
+
+              <div className="text-4xl font-black mb-6">€0</div>
+
+              <ul className="space-y-3 text-sm text-muted-foreground mb-8">
+                <li>• 1 active queue</li>
+                <li>• 20 daily tickets</li>
+              </ul>
+
+              <Button className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-300 to-violet-400 hover:from-blue-400 hover:to-violet-500 border-0 shadow-lg shadow-blue-500/25">
+                Start free
+              </Button>
+            </div>
+          </div>
+
+          {/* BASIC */}
+          <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-violet-500/20 rounded-3xl blur-2xl" />
+
+            {/* Badge */}
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-violet-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+              Most popular
+            </div>
+            
+            <div className="relative">
+              <h3 className="text-xl font-semibold mb-2">Basic</h3>
+              <p className="text-muted-foreground mb-6">For growing businesses</p>
+
+              <div className="text-4xl font-black mb-6">
+                €9<span className="text-base font-medium">/mo</span>
+              </div>
+
+              <ul className="space-y-3 text-sm text-muted-foreground mb-8">
+                <li>• 5 active queues</li>
+                <li>• 250 daily tickets</li>
+              </ul>
+
+              <Button
+                className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25"
+              >
+                Get Basic
+              </Button>
+            </div>
+          </div>
+
+          {/* PRO */}
+          <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-violet-500/20 rounded-3xl blur-2xl" />
+            
+            <div className="relative">
+              <h3 className="text-xl font-semibold mb-2">Pro</h3>
+              <p className="text-muted-foreground mb-6">For enterprises</p>
+
+              <div className="text-4xl font-black mb-6">
+                €29<span className="text-base font-medium">/mo</span>
+              </div>
+
+              <ul className="space-y-3 text-sm text-muted-foreground mb-8">
+                <li>• <b>Unlimited</b> active queues</li>
+                <li>• <b>Unlimited</b> daily tickets</li>
+              </ul>
+
+              <Button className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-300 to-violet-400 hover:from-blue-400 hover:to-violet-500 border-0 shadow-lg shadow-blue-500/25">
+                Go Pro
+              </Button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
           CTA
       ════════════════════════════════════════ */}
       <section className="relative z-10 py-28 px-6 border-t border-border/30">
@@ -459,15 +561,17 @@ export default function LandingPage() {
               <p className="text-muted-foreground mb-8 leading-relaxed">
                 Join hundreds of businesses already running smarter queues with QMaster. Free plan available.
               </p>
+              <Link href="/auth/sign-up">
               <Button
                 size="lg"
-                className="h-12 px-10 text-base font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25"
+                className="h-12 px-10 text-base cursor-pointer font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25"
               >
                 Get started free
                 <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Button>
+              </Link>
             </div>
           </div>
         </div>
