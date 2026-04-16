@@ -3,6 +3,9 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SmartButton } from "@/components/smart-button";
+import TestimonialsCarousel from "@/components/testimonials-carousel";
+
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -114,18 +117,13 @@ export default function LandingPage() {
             temporary or permanent — with scheduling and guest reservations built in.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/auth/sign-up">
-              <Button
-                size="lg" 
-                className="h-12 px-8 text-base font-semibold cursor-pointer bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25 transition-all duration-200"
-              >
-                Start for free
-                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Button>
-            </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <SmartButton
+              loggedOutText="Create an account"
+              loggedInText="Open dashobard"
+              loggedOutHref="/auth/sign-up"
+              loggedInHref="/dashboard"
+            />
             <Button
               size="lg"
               variant="outline"
@@ -406,46 +404,8 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           SOCIAL PROOF
       ════════════════════════════════════════ */}
-      <section className="relative z-10 py-20 px-6 border-t border-border/30" id="testimonials">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-5">
-            {[
-              {
-                quote: "We went from a chaotic waiting room to zero complaints in a week. QMaster just works.",
-                name: "Ivan Blažić",
-                role: "Owner, Barbershop Zen",
-              },
-              {
-                quote: "The scheduled queue feature is perfect for our clinic. Patients love knowing their exact slot.",
-                name: "Dr. Petra Novak",
-                role: "GP, Ordinacija Novak",
-              },
-              {
-                quote: "Set it up in 10 minutes. My staff spends less time at the door and more time with customers.",
-                name: "Maja Šimić",
-                role: "Manager, Salon Luxe",
-              },
-            ].map((t) => (
-              <Card key={t.name} className="bg-card/60 border-border/40">
-                <CardContent className="pt-6 pb-6 px-6">
-                  <div className="flex mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-5 italic">"{t.quote}"</p>
-                  <div>
-                    <p className="font-semibold text-sm">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+
+      <TestimonialsCarousel />
 
       {/* ════════════════════════════════════════
         PRICING
@@ -561,17 +521,12 @@ export default function LandingPage() {
               <p className="text-muted-foreground mb-8 leading-relaxed">
                 Join hundreds of businesses already running smarter queues with QMaster. Free plan available.
               </p>
-              <Link href="/auth/sign-up">
-              <Button
-                size="lg"
-                className="h-12 px-10 text-base cursor-pointer font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25"
-              >
-                Get started free
-                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Button>
-              </Link>
+              <SmartButton
+              loggedOutText="Get started for free!"
+              loggedInText="Explore dashobard"
+              loggedOutHref="/auth/sign-up"
+              loggedInHref="/dashboard"
+              />
             </div>
           </div>
         </div>
