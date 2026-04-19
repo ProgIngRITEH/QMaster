@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SmartButton } from "@/components/smart-button";
 import TestimonialsCarousel from "@/components/testimonials-carousel";
+import { RefreshOnBack } from "@/components/refresh-on-back"; // ← dodano
 
 import Link from "next/link";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <RefreshOnBack /> {/* ← dodano, renders nothing */}
+
       {/* ─── Noise texture overlay ─── */}
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-[0.03]"
@@ -66,8 +69,8 @@ export default function LandingPage() {
             {[
               { name: "Features", href: "#features" },
               { name: "How it works", href: "#how-it-works" },
-              { name: "Testimonials", href: "#testimonials" }, 
-              { name: "Pricing", href: "#pricing" }, 
+              { name: "Testimonials", href: "#testimonials" },
+              { name: "Pricing", href: "#pricing" },
             ].map((item) => (
               <Link
                 key={item.name}
@@ -187,9 +190,7 @@ export default function LandingPage() {
                     >
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${
-                          person.active
-                            ? "bg-blue-500 text-white"
-                            : "bg-muted text-muted-foreground"
+                          person.active ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {person.num}
@@ -232,14 +233,11 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           FEATURES
       ════════════════════════════════════════ */}
-      <section className="relative z-10 py-28 px-6 border-t border-border/30" id="features"> 
+      <section className="relative z-10 py-28 px-6 border-t border-border/30" id="features">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground mb-3">Everything you need</p>
-            <h2
-              className="text-4xl md:text-5xl font-black tracking-tight"
-              style={{ letterSpacing: "-0.03em" }}
-            >
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight" style={{ letterSpacing: "-0.03em" }}>
               Built for real businesses
             </h2>
           </div>
@@ -249,67 +247,55 @@ export default function LandingPage() {
               {
                 icon: (
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 ),
-                color: "blue",
-                title: "Temporary queues",
+                color: "blue", title: "Temporary queues",
                 desc: "Spin up a live queue in seconds for walk-in events, pop-ups, or one-off services. Share a link and you're done.",
               },
               {
                 icon: (
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 ),
-                color: "violet",
-                title: "Scheduled queues",
+                color: "violet", title: "Scheduled queues",
                 desc: "Set recurring queues with opening hours, capacity limits, and automatic resets. Perfect for daily operations.",
               },
               {
                 icon: (
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
                   </svg>
                 ),
-                color: "cyan",
-                title: "Guest reservations",
+                color: "cyan", title: "Guest reservations",
                 desc: "Customers join your queue without an account. Collect a name, number, or any info you need — fully customisable.",
               },
               {
                 icon: (
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                 ),
-                color: "blue",
-                title: "Live notifications",
+                color: "blue", title: "Live notifications",
                 desc: "SMS or in-app alerts keep customers updated on their position so they don't have to stand and wait.",
               },
               {
                 icon: (
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 ),
-                color: "violet",
-                title: "Analytics dashboard",
+                color: "violet", title: "Analytics dashboard",
                 desc: "Track peak hours, average wait times, and no-show rates to optimise your workflow every single day.",
               },
               {
                 icon: (
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 ),
-                color: "cyan",
-                title: "Mobile-first",
+                color: "cyan", title: "Mobile-first",
                 desc: "Manage your queue from anywhere. The operator dashboard is fully responsive — phone, tablet, or desktop.",
               },
             ].map((feature) => {
@@ -318,14 +304,10 @@ export default function LandingPage() {
                 violet: "from-violet-500/10 to-violet-500/5 border-violet-500/20 text-violet-400",
                 cyan: "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 text-cyan-400",
               };
-              const classes = colorMap[feature.color];
               return (
-                <Card
-                  key={feature.title}
-                  className="group bg-card/60 border-border/40 hover:border-border hover:bg-card/90 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                >
+                <Card key={feature.title} className="group bg-card/60 border-border/40 hover:border-border hover:bg-card/90 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                   <CardContent className="pt-6 pb-6 px-6">
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${classes} border flex items-center justify-center mb-5`}>
+                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${colorMap[feature.color]} border flex items-center justify-center mb-5`}>
                       {feature.icon}
                     </div>
                     <h3 className="font-bold text-base mb-2 tracking-tight">{feature.title}</h3>
@@ -345,49 +327,22 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground mb-3">How it works</p>
-            <h2
-              className="text-4xl md:text-5xl font-black tracking-tight"
-              style={{ letterSpacing: "-0.03em" }}
-            >
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight" style={{ letterSpacing: "-0.03em" }}>
               Up and running in minutes
             </h2>
           </div>
 
           <div className="relative">
-            {/* Vertical connector line */}
             <div className="absolute left-[27px] top-12 bottom-12 w-px bg-gradient-to-b from-blue-500/50 via-violet-500/50 to-cyan-500/50 hidden md:block" />
-
             <div className="space-y-8">
               {[
-                {
-                  step: "01",
-                  title: "Create your business profile",
-                  desc: "Sign up and configure your business — name, category, operating hours. Takes about two minutes.",
-                  color: "bg-blue-500",
-                },
-                {
-                  step: "02",
-                  title: "Set up your queue type",
-                  desc: "Choose a temporary queue for today, or a permanent queue with a recurring schedule. Customise capacity, fields, and messages.",
-                  color: "bg-violet-500",
-                },
-                {
-                  step: "03",
-                  title: "Share the link",
-                  desc: "Every queue gets a unique URL and QR code. Place it at your entrance, on your website, or send it directly to customers.",
-                  color: "bg-cyan-500",
-                },
-                {
-                  step: "04",
-                  title: "Manage in real time",
-                  desc: "Call the next customer, skip, remove, or add notes — all from your dashboard. Customers get notified automatically.",
-                  color: "bg-blue-500",
-                },
+                { step: "01", title: "Create your business profile", desc: "Sign up and configure your business — name, category, operating hours. Takes about two minutes.", color: "bg-blue-500" },
+                { step: "02", title: "Set up your queue type", desc: "Choose a temporary queue for today, or a permanent queue with a recurring schedule. Customise capacity, fields, and messages.", color: "bg-violet-500" },
+                { step: "03", title: "Share the link", desc: "Every queue gets a unique URL and QR code. Place it at your entrance, on your website, or send it directly to customers.", color: "bg-cyan-500" },
+                { step: "04", title: "Manage in real time", desc: "Call the next customer, skip, remove, or add notes — all from your dashboard. Customers get notified automatically.", color: "bg-blue-500" },
               ].map((item, i) => (
                 <div key={i} className="flex gap-6 items-start group">
-                  <div
-                    className={`relative z-10 w-14 h-14 rounded-2xl ${item.color} flex items-center justify-center flex-shrink-0 shadow-lg`}
-                  >
+                  <div className={`relative z-10 w-14 h-14 rounded-2xl ${item.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
                     <span className="text-white font-black text-sm">{item.step}</span>
                   </div>
                   <div className="pt-3.5">
@@ -404,42 +359,31 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════
           SOCIAL PROOF
       ════════════════════════════════════════ */}
-
       <TestimonialsCarousel />
 
       {/* ════════════════════════════════════════
-        PRICING
+          PRICING
       ════════════════════════════════════════ */}
       <section className="relative z-10 py-28 px-6 border-t border-border/30" id="pricing">
         <div className="max-w-6xl mx-auto text-center mb-16">
-          <h2
-            className="text-4xl md:text-5xl font-black tracking-tight mb-4"
-            style={{ letterSpacing: "-0.03em" }}
-          >
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ letterSpacing: "-0.03em" }}>
             Simple, transparent pricing
           </h2>
-          <p className="text-muted-foreground">
-            Choose the plan that fits your business needs
-          </p>
+          <p className="text-muted-foreground">Choose the plan that fits your business needs</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          
           {/* FREE */}
           <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-violet-500/20 rounded-3xl blur-2xl" />
-            
             <div className="relative">
               <h3 className="text-xl font-semibold mb-2">Free</h3>
               <p className="text-muted-foreground mb-6">Perfect to get started</p>
-
               <div className="text-4xl font-black mb-6">€0</div>
-
               <ul className="space-y-3 text-sm text-muted-foreground mb-8">
                 <li>• 1 active queue</li>
                 <li>• 20 daily tickets</li>
               </ul>
-
               <Button className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-300 to-violet-400 hover:from-blue-400 hover:to-violet-500 border-0 shadow-lg shadow-blue-500/25">
                 Start free
               </Button>
@@ -449,28 +393,18 @@ export default function LandingPage() {
           {/* BASIC */}
           <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-violet-500/20 rounded-3xl blur-2xl" />
-
-            {/* Badge */}
             <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-violet-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
               Most popular
             </div>
-            
             <div className="relative">
               <h3 className="text-xl font-semibold mb-2">Basic</h3>
               <p className="text-muted-foreground mb-6">For growing businesses</p>
-
-              <div className="text-4xl font-black mb-6">
-                €9<span className="text-base font-medium">/mo</span>
-              </div>
-
+              <div className="text-4xl font-black mb-6">€9<span className="text-base font-medium">/mo</span></div>
               <ul className="space-y-3 text-sm text-muted-foreground mb-8">
                 <li>• 5 active queues</li>
                 <li>• 250 daily tickets</li>
               </ul>
-
-              <Button
-                className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25"
-              >
+              <Button className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/25">
                 Get Basic
               </Button>
             </div>
@@ -479,26 +413,19 @@ export default function LandingPage() {
           {/* PRO */}
           <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-violet-500/20 rounded-3xl blur-2xl" />
-            
             <div className="relative">
               <h3 className="text-xl font-semibold mb-2">Pro</h3>
               <p className="text-muted-foreground mb-6">For enterprises</p>
-
-              <div className="text-4xl font-black mb-6">
-                €29<span className="text-base font-medium">/mo</span>
-              </div>
-
+              <div className="text-4xl font-black mb-6">€29<span className="text-base font-medium">/mo</span></div>
               <ul className="space-y-3 text-sm text-muted-foreground mb-8">
                 <li>• <b>Unlimited</b> active queues</li>
                 <li>• <b>Unlimited</b> daily tickets</li>
               </ul>
-
               <Button className="w-full h-11 font-semibold cursor-pointer bg-gradient-to-r from-blue-300 to-violet-400 hover:from-blue-400 hover:to-violet-500 border-0 shadow-lg shadow-blue-500/25">
                 Go Pro
               </Button>
             </div>
           </div>
-
         </div>
       </section>
 
@@ -510,10 +437,7 @@ export default function LandingPage() {
           <div className="relative inline-block mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-violet-500/30 rounded-3xl blur-2xl" />
             <div className="relative rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl px-12 py-14">
-              <h2
-                className="text-4xl md:text-5xl font-black tracking-tight mb-4"
-                style={{ letterSpacing: "-0.03em" }}
-              >
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ letterSpacing: "-0.03em" }}>
                 Ready to master
                 <br />
                 your queue?
@@ -522,10 +446,10 @@ export default function LandingPage() {
                 Join hundreds of businesses already running smarter queues with QMaster. Free plan available.
               </p>
               <SmartButton
-              loggedOutText="Get started for free!"
-              loggedInText="Explore dashobard"
-              loggedOutHref="/auth/sign-up"
-              loggedInHref="/dashboard"
+                loggedOutText="Get started for free!"
+                loggedInText="Explore dashobard"
+                loggedOutHref="/auth/sign-up"
+                loggedInHref="/dashboard"
               />
             </div>
           </div>
@@ -549,9 +473,7 @@ export default function LandingPage() {
           <p>© 2026 QMaster. All rights reserved.</p>
           <div className="flex gap-6">
             {["Privacy", "Terms", "Contact"].map((l) => (
-              <Link key={l} href="#" className="hover:text-foreground transition-colors">
-                {l}
-              </Link>
+              <Link key={l} href="#" className="hover:text-foreground transition-colors">{l}</Link>
             ))}
           </div>
         </div>
