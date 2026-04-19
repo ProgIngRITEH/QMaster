@@ -22,12 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { useRefreshOnBack } from "@/hooks/use-refresh-on-back";
 
 const navItems = [
-  { label: "Dashboard",     href: "/dashboard",                icon: LayoutDashboard, exact: true },
-  { label: "My Queues",     href: "/dashboard/queues",         icon: ListOrdered },
-  { label: "Create Queue",  href: "/dashboard/queues/create",  icon: PlusCircle, highlight: true },
-  { label: "Scheduled",     href: "/dashboard/scheduled",      icon: CalendarClock },
-  { label: "Guests",        href: "/dashboard/guests",         icon: Users },
-  { label: "Settings",      href: "/dashboard/settings",       icon: Settings },
+  { label: "Dashboard",    href: "/dashboard",               icon: LayoutDashboard, exact: true },
+  { label: "My Queues",    href: "/dashboard/queues",        icon: ListOrdered,     exact: true },
+  { label: "Create Queue", href: "/dashboard/queues/create", icon: PlusCircle,      exact: true, highlight: true },
+  { label: "Scheduled",    href: "/dashboard/scheduled",     icon: CalendarClock },
+  { label: "Guests",       href: "/dashboard/guests",        icon: Users },
+  { label: "Settings",     href: "/dashboard/settings",      icon: Settings },
 ];
 
 function SidebarContent({
