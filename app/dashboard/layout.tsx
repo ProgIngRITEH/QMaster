@@ -34,7 +34,7 @@ const navItems = [
   },
   {
     label: "Create Queue",
-    href: "/dashboard/queues/new",
+    href: "/dashboard/queues/create",
     icon: PlusCircle,
     highlight: true,
   },
@@ -65,7 +65,7 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-border/40">
+      <div className="px-5 py-5 border-b border-border/40 flex-shrink-0">
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5 group"
@@ -101,7 +101,7 @@ function SidebarContent({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto min-h-0">
         <p className="px-3 pb-2 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground/60">
           Navigation
         </p>
@@ -129,7 +129,9 @@ function SidebarContent({
                 size={16}
                 className={cn(
                   "flex-shrink-0 transition-colors",
-                  active ? "text-blue-400" : "text-muted-foreground group-hover:text-foreground"
+                  active
+                    ? "text-blue-400"
+                    : "text-muted-foreground group-hover:text-foreground"
                 )}
               />
               <span className="flex-1">{item.label}</span>
@@ -146,8 +148,8 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Bottom: auth + theme */}
-      <div className="px-4 py-4 border-t border-border/40 space-y-2">
+      {/* Bottom */}
+      <div className="px-4 py-4 border-t border-border/40 space-y-2 flex-shrink-0">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground font-medium">Theme</span>
           <ThemeSwitcher />
@@ -167,13 +169,15 @@ export default function DashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex w-60 flex-col border-r border-border/40 bg-card/50 backdrop-blur-xl flex-shrink-0">
+    // Root: fixed height, no overflow
+    <div className="flex h-screen bg-background">
+
+      {/* Desktop sidebar — fixed height, doesn't scroll page */}
+      <aside className="hidden md:flex w-60 flex-col border-r border-border/40 bg-card/50 backdrop-blur-xl flex-shrink-0 overflow-hidden">
         <SidebarContent pathname={pathname} />
       </aside>
 
-      {/* ── Mobile drawer backdrop ── */}
+      {/* Mobile backdrop */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
@@ -181,10 +185,10 @@ export default function DashboardLayout({
         />
       )}
 
-      {/* ── Mobile drawer ── */}
+      {/* Mobile drawer */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-border/40 bg-card backdrop-blur-xl transition-transform duration-300 md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-border/40 bg-card backdrop-blur-xl transition-transform duration-300 md:hidden overflow-hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -200,8 +204,9 @@ export default function DashboardLayout({
         />
       </aside>
 
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* Main area — takes remaining width, scroll is ONLY here */}
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+
         {/* Mobile topbar */}
         <header className="md:hidden flex items-center justify-between px-4 h-14 border-b border-border/40 bg-card/50 backdrop-blur-xl flex-shrink-0">
           <Button
@@ -221,8 +226,8 @@ export default function DashboardLayout({
           <ThemeSwitcher />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Scrollable content — strictly contained */}
+        <main className="flex-1 overflow-y-auto min-h-0">
           {children}
         </main>
       </div>

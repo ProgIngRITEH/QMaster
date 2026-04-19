@@ -223,7 +223,7 @@ async function DashboardContent() {
             {displayName} 👋
           </h1>
         </div>
-        <Link href="/dashboard/queues/new">
+        <Link href="/dashboard/queues/create">
           <Button className="h-10 px-5 font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0 shadow-lg shadow-blue-500/20">
             <PlusCircle size={16} className="mr-2" />
             New Queue
