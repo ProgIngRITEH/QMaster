@@ -11,27 +11,47 @@ export function AuthButton() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const run = async () => {
-      const supabase = createClient();
+    const supabase = createClient();
+    let mounted = true;
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      setUser(user);
+    const resolve = (session: any) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
       setLoading(false);
     };
 
-    run();
+    // 1. session fetch
+    supabase.auth.getSession().then(({ data }) => {
+      resolve(data.session);
+
+      // fallback guard (AKO se nešto zaglavi)
+      setTimeout(() => {
+        if (mounted) setLoading(false);
+      }, 800);
+    });
+
+    // 2. auth listener
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        resolve(session);
+      }
+    );
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) {
-    return null; // ili skeleton
+    return <div className="h-6 w-24 bg-muted rounded-md animate-pulse" />;
   }
 
   return user ? (
     <div className="flex items-center gap-4">
-      <span className="text-sm">Hey, {user?.user_metadata?.full_name}!</span>
+      <span className="text-sm">
+        Hey, {user?.user_metadata?.full_name || "user"}!
+      </span>
       <LogoutButton />
     </div>
   ) : (
@@ -39,7 +59,6 @@ export function AuthButton() {
       <Button asChild size="sm" variant="outline">
         <Link href="/auth/login">Sign in</Link>
       </Button>
-
       <Button asChild size="sm">
         <Link href="/auth/sign-up">Sign up</Link>
       </Button>
