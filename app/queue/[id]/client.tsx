@@ -40,6 +40,7 @@ type Entry = {
   status: "waiting" | "called" | "served" | "no_show" | "left";
   joined_at: string;
   token: string;
+  admin_notes: string | null;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -357,6 +358,20 @@ export default function QueuePublicClient() {
                   </div>
                   <p className="font-black text-xl text-emerald-400">You're being called!</p>
                   <p className="text-sm text-muted-foreground">Please proceed to the counter.</p>
+
+                  {myEntry.admin_notes && (
+                    <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-left">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <FileText size={14} className="text-blue-400 shrink-0" />
+                        <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                          Message from staff
+                        </p>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {myEntry.admin_notes}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -378,6 +393,21 @@ export default function QueuePublicClient() {
                     <span className="text-sm font-semibold text-muted-foreground">Name</span>
                     <span className="text-sm font-semibold">{myEntry.guest_name}</span>
                   </div>
+
+                  {myEntry.admin_notes && (
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <FileText size={14} className="text-blue-400 shrink-0" />
+                        <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                          Message from staff
+                        </p>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {myEntry.admin_notes}
+                      </p>
+                    </div>
+                  )}
+
                   {queue.max_size && (
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
