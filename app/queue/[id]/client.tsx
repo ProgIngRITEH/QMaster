@@ -234,11 +234,10 @@ export default function QueuePublicClient() {
   // Sync myEntry position from live entries.
   // Important: do not include myEntry in dependencies to avoid update loops.
   useEffect(() => {
-    const live = myEntry ? entries.find((e) => e.id === myEntry.id) : null;
-    if (!live) return;
-
     setMyEntry((prev) => {
       if (!prev) return prev;
+      const live = entries.find((e) => e.id === prev.id);
+      if (!live) return prev;
 
       const hasChanged =
         live.position !== prev.position ||
