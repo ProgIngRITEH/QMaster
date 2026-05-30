@@ -30,6 +30,7 @@ type Queue = {
   allow_guest_notes: boolean;
   is_active: boolean;
   is_open: boolean;
+  is_paused: boolean;
 };
 
 type Entry = {
@@ -333,8 +334,23 @@ export default function QueuePublicClient() {
           />
         </div>
 
+       {/* Paused banner */}
+        {queue.is_paused && (
+          <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+            <AlertCircle size={18} className="text-amber-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-400">
+                Queue is currently paused
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Existing guests keep their place in line, but new guests cannot join right now.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Closed banner */}
-        {!queue.is_open && (
+        {!queue.is_open && !queue.is_paused && (
           <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
             <AlertCircle size={18} className="text-muted-foreground shrink-0" />
             <div>
@@ -428,7 +444,7 @@ export default function QueuePublicClient() {
         )}
 
         {/* Join form */}
-        {!myEntry && queue.is_open && !queueFull && (
+       {!myEntry && queue.is_open && !queue.is_paused && !queueFull && (
           <Card className="border-border/40 bg-card/60">
             <CardContent className="p-5">
               <h2 className="font-bold text-base mb-4">Join this queue</h2>
@@ -504,7 +520,7 @@ export default function QueuePublicClient() {
           </Card>
         )}
 
-        {!myEntry && queueFull && queue.is_open && (
+       {!myEntry && queueFull && queue.is_open && !queue.is_paused && (
           <Card className="border-border/40 bg-muted/10">
             <CardContent className="p-5 text-center space-y-2">
               <Users size={32} className="mx-auto text-muted-foreground/60" />

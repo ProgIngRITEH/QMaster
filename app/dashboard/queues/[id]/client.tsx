@@ -31,6 +31,7 @@ type Queue = {
   no_show_tracking: boolean;
   auto_close: boolean;
   is_open: boolean;
+  is_paused: boolean;
   is_active: boolean;
 };
 
@@ -133,17 +134,31 @@ export default function AdminQueueDetailClient() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  async function toggleOpen() {
-    if (!queue) return;
-    setToggling(true);
-    const sb = getSB();
-    if (queue.is_open) {
-      await sb.rpc("close_queue", { p_queue_id: id, p_clear: false });
-    } else {
-      await sb.rpc("open_queue", { p_queue_id: id });
-    }
-    setToggling(false);
+ async function toggleOpen() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  if (queue.is_open && !queue.is_paused) {
+    await sb
+      .from("queues")
+      .update({ is_open: true, is_paused: true })
+      .eq("id", id);
+  } else if (queue.is_open && queue.is_paused) {
+    await sb
+      .from("queues")
+      .update({ is_open: false, is_paused: false })
+      .eq("id", id);
+  } else {
+    await sb
+      .from("queues")
+      .update({ is_open: true, is_paused: false })
+      .eq("id", id);
   }
+
+  setToggling(false);
+}
 
   async function callNext() {
     const next = entries.find((e) => e.status === "waiting");
@@ -231,7 +246,7 @@ export default function AdminQueueDetailClient() {
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                 : "bg-muted/40 text-muted-foreground border-border/40"
               }>
-                {queue.is_open ? "Open" : "Closed"}
+                {queue.is_paused ? "Paused" : queue.is_open ? "Open" : "Closed"}
               </Badge>
             </div>
             {queue.description && (
@@ -260,7 +275,13 @@ export default function AdminQueueDetailClient() {
               }
             >
               <Power size={14} className="mr-1.5" />
-              {toggling ? "…" : queue.is_open ? "Close queue" : "Open queue"}
+              {toggling
+                ? "…"
+                : queue.is_open && !queue.is_paused
+                  ? "Pause queue"
+                  : queue.is_paused
+                    ? "Close queue"
+                    : "Open queue"}
             </Button>
           </div>
         </div>
