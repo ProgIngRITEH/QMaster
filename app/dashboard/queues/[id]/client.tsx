@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { QueueQrCodeDialog } from "@/components/queue-qr-code-dialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -244,6 +245,7 @@ export default function AdminQueueDetailClient() {
               <Copy size={14} className="mr-1.5" />
               {copied ? "Copied!" : "Copy link"}
             </Button>
+            <QueueQrCodeDialog url={guestUrl} queueName={queue.name} />
             <Link href={guestUrl} target="_blank">
               <Button variant="outline" size="sm" className="h-9">
                 <ExternalLink size={14} className="mr-1.5" />
