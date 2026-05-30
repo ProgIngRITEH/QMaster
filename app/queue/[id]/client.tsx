@@ -231,23 +231,32 @@ export default function QueuePublicClient() {
     return () => { sb.removeChannel(channel); };
   }, [mounted, id]);
 
-  // Sync myEntry position from live entries
+  // Sync myEntry position from live entries.
+  // Important: do not include myEntry in dependencies to avoid update loops.
   useEffect(() => {
-    if (!myEntry) return;
-    const live = entries.find((e) => e.id === myEntry.id);
-    if (live) {
-      setMyEntry((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev, ...live };
-        if (["served", "no_show", "left"].includes(updated.status)) {
-          localStorage.removeItem(`qmaster_entry_${id}`);
-        } else {
-          localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
-        }
-        return updated;
-      });
-    }
-  }, [entries]);
+    const live = myEntry ? entries.find((e) => e.id === myEntry.id) : null;
+    if (!live) return;
+
+    setMyEntry((prev) => {
+      if (!prev) return prev;
+
+      const hasChanged =
+        live.position !== prev.position ||
+        live.status !== prev.status ||
+        live.guest_name !== prev.guest_name ||
+        live.admin_notes !== prev.admin_notes;
+
+      if (!hasChanged) return prev;
+
+      const updated = { ...prev, ...live };
+      if (["served", "no_show", "left"].includes(updated.status)) {
+        localStorage.removeItem(`qmaster_entry_${id}`);
+      } else {
+        localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, [entries, id]);
 
   // ── Join ───────────────────────────────────────────────────────────────────
   async function handleJoin(e: React.FormEvent) {
