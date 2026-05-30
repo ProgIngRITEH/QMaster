@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   Clock, Users, CheckCircle2, XCircle, Loader2,
-  Phone, User, FileText, AlertCircle, Timer,
+  Phone, User, FileText, AlertCircle, Timer, Share2, Copy,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -143,6 +143,7 @@ export default function QueuePublicClient() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -230,23 +231,31 @@ export default function QueuePublicClient() {
     return () => { sb.removeChannel(channel); };
   }, [mounted, id]);
 
-  // Sync myEntry position from live entries
+  // Sync myEntry position from live entries.
+  // Important: do not include myEntry in dependencies to avoid update loops.
   useEffect(() => {
-    if (!myEntry) return;
-    const live = entries.find((e) => e.id === myEntry.id);
-    if (live) {
-      setMyEntry((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev, ...live };
-        if (["served", "no_show", "left"].includes(updated.status)) {
-          localStorage.removeItem(`qmaster_entry_${id}`);
-        } else {
-          localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
-        }
-        return updated;
-      });
-    }
-  }, [entries]);
+    setMyEntry((prev) => {
+      if (!prev) return prev;
+      const live = entries.find((e) => e.id === prev.id);
+      if (!live) return prev;
+
+      const hasChanged =
+        live.position !== prev.position ||
+        live.status !== prev.status ||
+        live.guest_name !== prev.guest_name ||
+        live.admin_notes !== prev.admin_notes;
+
+      if (!hasChanged) return prev;
+
+      const updated = { ...prev, ...live };
+      if (["served", "no_show", "left"].includes(updated.status)) {
+        localStorage.removeItem(`qmaster_entry_${id}`);
+      } else {
+        localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, [entries, id]);
 
   // ── Join ───────────────────────────────────────────────────────────────────
   async function handleJoin(e: React.FormEvent) {
@@ -296,6 +305,37 @@ export default function QueuePublicClient() {
     localStorage.removeItem(`qmaster_entry_${id}`);
   }
 
+  // ── Share ──────────────────────────────────────────────────────────────────
+  async function handleShare() {
+    const url = window.location.href;
+    const shareData = {
+      title: queue?.name ? `Join ${queue.name}` : "Join queue",
+      text: queue?.name ? `Join the queue for ${queue.name}.` : "Join this queue.",
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (error) {
+      if ((error as Error).name === "AbortError") return;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        console.error("Failed to share or copy queue link");
+      }
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   if (!mounted || loading) {
@@ -334,16 +374,31 @@ export default function QueuePublicClient() {
     <div className="min-h-screen bg-background">
       {/* Top bar */}
       <div className="border-b border-border/40 bg-card/60 backdrop-blur px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="font-black text-xl tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-black text-xl tracking-tight truncate" style={{ letterSpacing: "-0.02em" }}>
               {queue.name}
             </h1>
             {queue.description && (
-              <p className="text-xs text-muted-foreground mt-0.5">{queue.description}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{queue.description}</p>
             )}
           </div>
-          <Badge className={statusBadge.cls}>{statusBadge.label}</Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button type="button" variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
+              {shareCopied ? (
+                <>
+                  <Copy size={14} />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Share2 size={14} />
+                  Share
+                </>
+              )}
+            </Button>
+            <Badge className={statusBadge.cls}>{statusBadge.label}</Badge>
+          </div>
         </div>
       </div>
 
