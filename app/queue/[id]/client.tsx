@@ -31,6 +31,7 @@ type Queue = {
   is_active: boolean;
   is_open: boolean;
   is_paused: boolean;
+  timezone: "local" | "cet" | "utc" | null;
 };
 
 type Entry = {
@@ -61,7 +62,12 @@ function formatTime(t: string | null) {
 
 // ── Countdown hook ────────────────────────────────────────────────────────────
 
-function useOpenCountdown(startTime: string | null, isOpen: boolean) {
+function useOpenCountdown(
+  startTime: string | null,
+  isOpen: boolean,
+  queueType: Queue["queue_type"] | null,
+  timezone: Queue["timezone"]
+) {
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,19 +76,56 @@ function useOpenCountdown(startTime: string | null, isOpen: boolean) {
       return;
     }
 
+    const timeZone =
+      timezone === "utc"
+        ? "UTC"
+        : timezone === "cet"
+          ? "Europe/Zagreb"
+          : undefined;
+
     function calc() {
       const now = new Date();
-      const [h, m] = startTime!.split(":").map(Number);
+      const nowInQueueTimezone = timeZone
+        ? new Date(now.toLocaleString("en-US", { timeZone }))
+        : now;
 
-      const target = new Date();
-      target.setHours(h, m, 0, 0);
+      let target: Date | null = null;
 
-      // If already past today, aim for tomorrow
-      if (target <= now) {
-        target.setDate(target.getDate() + 1);
+      const startDateTimeMatch = startTime.match(
+        /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2})/
+      );
+
+      if (queueType === "scheduled" && startDateTimeMatch) {
+        const [, datePart, hoursPart, minutesPart] = startDateTimeMatch;
+        target = new Date(`${datePart}T${hoursPart}:${minutesPart}:00`);
+      } else {
+        const timePart = startTime.includes("T")
+          ? startTime.split("T")[1]
+          : startTime;
+        const [h, m] = timePart.split(":").map(Number);
+        if (!Number.isNaN(h) && !Number.isNaN(m)) {
+          target = new Date(nowInQueueTimezone);
+          target.setHours(h, m, 0, 0);
+
+          // If already past today, aim for tomorrow
+          if (target <= nowInQueueTimezone) {
+            target.setDate(target.getDate() + 1);
+          }
+        }
       }
 
-      const totalSecs = Math.floor((target.getTime() - now.getTime()) / 1000);
+      if (!target || Number.isNaN(target.getTime())) {
+        setCountdown(null);
+        return;
+      }
+
+      const totalSecs = Math.floor(
+        (target.getTime() - nowInQueueTimezone.getTime()) / 1000
+      );
+      if (totalSecs < 0) {
+        setCountdown(null);
+        return;
+      }
       const hours = Math.floor(totalSecs / 3600);
       const mins = Math.floor((totalSecs % 3600) / 60);
       const secs = totalSecs % 60;
@@ -99,7 +142,7 @@ function useOpenCountdown(startTime: string | null, isOpen: boolean) {
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [startTime, isOpen]);
+  }, [startTime, isOpen, queueType, timezone]);
 
   return countdown;
 }
@@ -151,7 +194,9 @@ export default function QueuePublicClient() {
 
   const countdown = useOpenCountdown(
     queue?.start_time ?? null,
-    queue?.is_open ?? false
+    queue?.is_open ?? false,
+    queue?.queue_type ?? null,
+    queue?.timezone ?? null
   );
 
   useEffect(() => { setMounted(true); }, []);
