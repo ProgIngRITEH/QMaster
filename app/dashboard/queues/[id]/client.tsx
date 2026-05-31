@@ -134,32 +134,67 @@ export default function AdminQueueDetailClient() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
- async function toggleOpen() {
+async function pauseQueue() {
   if (!queue) return;
   setToggling(true);
 
   const sb = getSB();
 
-  if (queue.is_open && !queue.is_paused) {
-    await sb
-      .from("queues")
-      .update({ is_open: true, is_paused: true })
-      .eq("id", id);
-  } else if (queue.is_open && queue.is_paused) {
-    await sb
-      .from("queues")
-      .update({ is_open: false, is_paused: false })
-      .eq("id", id);
-  } else {
-    await sb
-      .from("queues")
-      .update({ is_open: true, is_paused: false })
-      .eq("id", id);
-  }
+  await sb
+    .from("queues")
+    .update({ is_open: true, is_paused: true })
+    .eq("id", id);
 
+  await fetchData();
   setToggling(false);
 }
 
+async function resumeQueue() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  await sb
+    .from("queues")
+    .update({ is_open: true, is_paused: false })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
+
+async function closeQueue() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  await sb.rpc("close_queue", { p_queue_id: id, p_clear: false });
+  await sb
+    .from("queues")
+    .update({ is_paused: false })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
+
+async function openQueue() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  await sb.rpc("open_queue", { p_queue_id: id });
+  await sb
+    .from("queues")
+    .update({ is_paused: false })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
   async function callNext() {
     const next = entries.find((e) => e.status === "waiting");
     if (!next) return;
@@ -265,24 +300,65 @@ export default function AdminQueueDetailClient() {
                 Guest view
               </Button>
             </Link>
-            <Button
-              size="sm"
-              onClick={toggleOpen}
-              disabled={toggling}
-              className={queue.is_open
-                ? "h-9 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
-                : "h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
-              }
-            >
-              <Power size={14} className="mr-1.5" />
-              {toggling
-                ? "…"
-                : queue.is_open && !queue.is_paused
-                  ? "Pause queue"
-                  : queue.is_paused
-                    ? "Close queue"
-                    : "Open queue"}
-            </Button>
+            {queue.is_open && !queue.is_paused && (
+  <>
+    <Button
+      size="sm"
+      onClick={pauseQueue}
+      disabled={toggling}
+      className="h-9 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+    >
+      <Power size={14} className="mr-1.5" />
+      Pause queue
+    </Button>
+
+    <Button
+      size="sm"
+      onClick={closeQueue}
+      disabled={toggling}
+      className="h-9 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+    >
+      <Power size={14} className="mr-1.5" />
+      Close queue
+    </Button>
+  </>
+)}
+
+    {queue.is_open && queue.is_paused && (
+      <>
+        <Button
+          size="sm"
+          onClick={resumeQueue}
+          disabled={toggling}
+          className="h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+        >
+          <Power size={14} className="mr-1.5" />
+          Resume queue
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={closeQueue}
+          disabled={toggling}
+          className="h-9 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+        >
+          <Power size={14} className="mr-1.5" />
+          Close queue
+        </Button>
+      </>
+    )}
+
+    {!queue.is_open && (
+      <Button
+        size="sm"
+        onClick={openQueue}
+        disabled={toggling}
+        className="h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+      >
+        <Power size={14} className="mr-1.5" />
+        Open queue
+      </Button>
+    )}
           </div>
         </div>
       </div>
