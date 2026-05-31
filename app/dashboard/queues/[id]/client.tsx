@@ -535,8 +535,9 @@ function GuestRow({
   const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
+    if (isEditingNote) return;
     setAdminNoteDraft(entry.admin_notes ?? "");
-  }, [entry.admin_notes]);
+  }, [entry.admin_notes, isEditingNote]);
 
   async function saveAdminNote() {
     setSavingNote(true);
