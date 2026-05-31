@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   Clock, Users, CheckCircle2, XCircle, Loader2,
-  Phone, User, FileText, AlertCircle, Timer,
+  Phone, User, FileText, AlertCircle, Timer, Share2, Copy,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ type Entry = {
   status: "waiting" | "called" | "served" | "no_show" | "left";
   joined_at: string;
   token: string;
+  admin_notes: string | null;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -58,14 +59,57 @@ function formatTime(t: string | null) {
   return t.slice(0, 5);
 }
 
+// ── Countdown hook ────────────────────────────────────────────────────────────
+
+function useOpenCountdown(startTime: string | null, isOpen: boolean) {
+  const [countdown, setCountdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen || !startTime) {
+      setCountdown(null);
+      return;
+    }
+
+    function calc() {
+      const now = new Date();
+      const [h, m] = startTime!.split(":").map(Number);
+
+      const target = new Date();
+      target.setHours(h, m, 0, 0);
+
+      // If already past today, aim for tomorrow
+      if (target <= now) {
+        target.setDate(target.getDate() + 1);
+      }
+
+      const totalSecs = Math.floor((target.getTime() - now.getTime()) / 1000);
+      const hours = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+
+      if (hours > 0) {
+        setCountdown(`${hours}h ${mins}m ${String(secs).padStart(2, "0")}s`);
+      } else if (mins > 0) {
+        setCountdown(`${mins}m ${String(secs).padStart(2, "0")}s`);
+      } else {
+        setCountdown(`${secs}s`);
+      }
+    }
+
+    calc();
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [startTime, isOpen]);
+
+  return countdown;
+}
+
+// ── StatCard ──────────────────────────────────────────────────────────────────
+
 function StatCard({
-  icon: Icon,
-  label,
-  value,
+  icon: Icon, label, value,
 }: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
+  icon: React.ElementType; label: string; value: string;
 }) {
   return (
     <div className="rounded-xl border border-border/40 bg-card/60 p-3 text-center">
@@ -81,7 +125,6 @@ function StatCard({
 export default function QueuePublicClient() {
   const { id } = useParams<{ id: string }>();
 
-  // useRef so the client is created exactly once after mount, never during SSR
   const supabaseRef = useRef<SupabaseClient | null>(null);
   function getSB() {
     if (!supabaseRef.current) {
@@ -100,15 +143,18 @@ export default function QueuePublicClient() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Only runs on client after hydration
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const countdown = useOpenCountdown(
+    queue?.start_time ?? null,
+    queue?.is_open ?? false
+  );
+
+  useEffect(() => { setMounted(true); }, []);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -137,11 +183,8 @@ export default function QueuePublicClient() {
     if (!mounted) return;
     const stored = localStorage.getItem(`qmaster_entry_${id}`);
     if (!stored) return;
-    try {
-      setMyEntry(JSON.parse(stored));
-    } catch {
-      localStorage.removeItem(`qmaster_entry_${id}`);
-    }
+    try { setMyEntry(JSON.parse(stored)); }
+    catch { localStorage.removeItem(`qmaster_entry_${id}`); }
   }, [mounted, id]);
 
   // ── Realtime ───────────────────────────────────────────────────────────────
@@ -155,7 +198,6 @@ export default function QueuePublicClient() {
         "postgres_changes",
         { event: "*", schema: "public", table: "queue_entries", filter: `queue_id=eq.${id}` },
         (payload) => {
-          // Refresh the waiting/called list
           sb.from("queue_entries")
             .select("*")
             .eq("queue_id", id)
@@ -163,20 +205,15 @@ export default function QueuePublicClient() {
             .order("position", { ascending: true })
             .then(({ data }) => { if (data) setEntries(data); });
 
-          // If this change is about MY entry, update myEntry state directly
           if (payload.eventType === "UPDATE" && payload.new) {
             setMyEntry((prev) => {
               if (!prev || prev.id !== payload.new.id) return prev;
               const updated = { ...prev, ...payload.new } as Entry;
-
-              // If served, no_show or left — clear localStorage so on
-              // next visit the guest starts fresh instead of seeing position 0
               if (["served", "no_show", "left"].includes(updated.status)) {
                 localStorage.removeItem(`qmaster_entry_${id}`);
               } else {
                 localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
               }
-
               return updated;
             });
           }
@@ -194,23 +231,31 @@ export default function QueuePublicClient() {
     return () => { sb.removeChannel(channel); };
   }, [mounted, id]);
 
-  // Sync myEntry position from live entries (fallback if realtime payload missed)
+  // Sync myEntry position from live entries.
+  // Important: do not include myEntry in dependencies to avoid update loops.
   useEffect(() => {
-    if (!myEntry) return;
-    const live = entries.find((e) => e.id === myEntry.id);
-    if (live) {
-      setMyEntry((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev, ...live };
-        if (["served", "no_show", "left"].includes(updated.status)) {
-          localStorage.removeItem(`qmaster_entry_${id}`);
-        } else {
-          localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
-        }
-        return updated;
-      });
-    }
-  }, [entries]);
+    setMyEntry((prev) => {
+      if (!prev) return prev;
+      const live = entries.find((e) => e.id === prev.id);
+      if (!live) return prev;
+
+      const hasChanged =
+        live.position !== prev.position ||
+        live.status !== prev.status ||
+        live.guest_name !== prev.guest_name ||
+        live.admin_notes !== prev.admin_notes;
+
+      if (!hasChanged) return prev;
+
+      const updated = { ...prev, ...live };
+      if (["served", "no_show", "left"].includes(updated.status)) {
+        localStorage.removeItem(`qmaster_entry_${id}`);
+      } else {
+        localStorage.setItem(`qmaster_entry_${id}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, [entries, id]);
 
   // ── Join ───────────────────────────────────────────────────────────────────
   async function handleJoin(e: React.FormEvent) {
@@ -260,9 +305,39 @@ export default function QueuePublicClient() {
     localStorage.removeItem(`qmaster_entry_${id}`);
   }
 
+  // ── Share ──────────────────────────────────────────────────────────────────
+  async function handleShare() {
+    const url = window.location.href;
+    const shareData = {
+      title: queue?.name ? `Join ${queue.name}` : "Join queue",
+      text: queue?.name ? `Join the queue for ${queue.name}.` : "Join this queue.",
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (error) {
+      if ((error as Error).name === "AbortError") return;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        console.error("Failed to share or copy queue link");
+      }
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  // Show spinner until mounted (avoids SSR/client mismatch)
   if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -282,35 +357,48 @@ export default function QueuePublicClient() {
   }
 
   const waitingEntries = entries.filter((e) => e.status === "waiting");
-  const myPosition = myEntry
-    ? waitingEntries.findIndex((e) => e.id === myEntry.id) + 1
-    : null;
+  const myPosition = myEntry ? waitingEntries.findIndex((e) => e.id === myEntry.id) + 1 : null;
   const isCalled = myEntry?.status === "called";
   const isServed = myEntry?.status === "served";
+  const isPaused = queue.is_paused;
   const queueFull = queue.max_size ? waitingEntries.length >= queue.max_size : false;
+  const canJoin = queue.is_open && !isPaused && !queueFull && !myEntry;
+
+  const statusBadge = isPaused
+    ? { label: "Paused", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" }
+    : queue.is_open
+    ? { label: "Open", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" }
+    : { label: "Closed", cls: "bg-muted/40 text-muted-foreground border-border/40" };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Top bar */}
       <div className="border-b border-border/40 bg-card/60 backdrop-blur px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="font-black text-xl tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-black text-xl tracking-tight truncate" style={{ letterSpacing: "-0.02em" }}>
               {queue.name}
             </h1>
             {queue.description && (
-              <p className="text-xs text-muted-foreground mt-0.5">{queue.description}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{queue.description}</p>
             )}
           </div>
-          <Badge
-            className={
-              queue.is_open
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-muted/40 text-muted-foreground border-border/40"
-            }
-          >
-            {queue.is_open ? "Open" : "Closed"}
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button type="button" variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
+              {shareCopied ? (
+                <>
+                  <Copy size={14} />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Share2 size={14} />
+                  Share
+                </>
+              )}
+            </Button>
+            <Badge className={statusBadge.cls}>{statusBadge.label}</Badge>
+          </div>
         </div>
       </div>
 
@@ -334,30 +422,44 @@ export default function QueuePublicClient() {
           />
         </div>
 
-       {/* Paused banner */}
-        {queue.is_paused && (
-          <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+        {/* Paused banner */}
+        {isPaused && queue.is_open && (
+          <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
             <AlertCircle size={18} className="text-amber-400 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-amber-400">
-                Queue is currently paused
-              </p>
+              <p className="text-sm font-semibold text-amber-400">Queue is temporarily paused</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Existing guests keep their place in line, but new guests cannot join right now.
+                New guests cannot join right now. Please check back shortly.
               </p>
             </div>
           </div>
         )}
 
-        {/* Closed banner */}
-        {!queue.is_open && !queue.is_paused && (
-          <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
-            <AlertCircle size={18} className="text-muted-foreground shrink-0" />
-            <div>
+        {/* Closed banner with live countdown */}
+        {!queue.is_open && (
+          <div className="flex items-start gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
+            <AlertCircle size={18} className="text-muted-foreground shrink-0 mt-0.5" />
+            <div className="flex-1">
               <p className="text-sm font-semibold">Queue is currently closed</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {queue.start_time ? `Opens at ${formatTime(queue.start_time)}` : "Check back later."}
-              </p>
+              {queue.queue_type === "permanent" || !queue.start_time ? (
+                <p className="text-xs text-muted-foreground mt-0.5">Check back later.</p>
+              ) : countdown ? (
+                <>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Opens at {formatTime(queue.start_time)}
+                  </p>
+                  <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg bg-background/60 border border-border/60">
+                    <Clock size={12} className="text-muted-foreground" />
+                    <span className="text-sm font-bold font-mono tracking-wider tabular-nums">
+                      {countdown}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Opens at {formatTime(queue.start_time)}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -373,6 +475,20 @@ export default function QueuePublicClient() {
                   </div>
                   <p className="font-black text-xl text-emerald-400">You're being called!</p>
                   <p className="text-sm text-muted-foreground">Please proceed to the counter.</p>
+
+                  {myEntry.admin_notes && (
+                    <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-left">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <FileText size={14} className="text-blue-400 shrink-0" />
+                        <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                          Message from staff
+                        </p>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {myEntry.admin_notes}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -394,6 +510,21 @@ export default function QueuePublicClient() {
                     <span className="text-sm font-semibold text-muted-foreground">Name</span>
                     <span className="text-sm font-semibold">{myEntry.guest_name}</span>
                   </div>
+
+                  {myEntry.admin_notes && (
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <FileText size={14} className="text-blue-400 shrink-0" />
+                        <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                          Message from staff
+                        </p>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {myEntry.admin_notes}
+                      </p>
+                    </div>
+                  )}
+
                   {queue.max_size && (
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
@@ -409,8 +540,7 @@ export default function QueuePublicClient() {
                     </div>
                   )}
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="outline" size="sm"
                     className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                     onClick={handleLeave}
                   >
@@ -428,15 +558,10 @@ export default function QueuePublicClient() {
               <CheckCircle2 size={36} className="mx-auto text-emerald-400" />
               <p className="font-bold text-emerald-400">You've been served!</p>
               <p className="text-xs text-muted-foreground">Thank you for your patience.</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => {
-                  setMyEntry(null);
-                  localStorage.removeItem(`qmaster_entry_${id}`);
-                }}
-              >
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => {
+                setMyEntry(null);
+                localStorage.removeItem(`qmaster_entry_${id}`);
+              }}>
                 Done
               </Button>
             </CardContent>
@@ -444,83 +569,53 @@ export default function QueuePublicClient() {
         )}
 
         {/* Join form */}
-       {!myEntry && queue.is_open && !queue.is_paused && !queueFull && (
+        {canJoin && (
           <Card className="border-border/40 bg-card/60">
             <CardContent className="p-5">
               <h2 className="font-bold text-base mb-4">Join this queue</h2>
               <form onSubmit={handleJoin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="g-name" className="flex items-center gap-2">
-                    <User size={13} className="text-muted-foreground" />
-                    Your name
+                    <User size={13} className="text-muted-foreground" />Your name
                   </Label>
-                  <Input
-                    id="g-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Ana Kovač"
-                    className="h-11"
-                    required
-                  />
+                  <Input id="g-name" value={name} onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Ana Kovač" className="h-11" required />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="g-phone" className="flex items-center gap-2">
-                    <Phone size={13} className="text-muted-foreground" />
-                    Phone number
+                    <Phone size={13} className="text-muted-foreground" />Phone number
                     <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                   </Label>
-                  <Input
-                    id="g-phone"
-                    value={phone}
-                    type="tel"
+                  <Input id="g-phone" value={phone} type="tel"
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+385 91 234 5678"
-                    className="h-11"
-                  />
+                    placeholder="+385 91 234 5678" className="h-11" />
                 </div>
-
                 {queue.allow_guest_notes && (
                   <div className="space-y-2">
                     <Label htmlFor="g-notes" className="flex items-center gap-2">
-                      <FileText size={13} className="text-muted-foreground" />
-                      Notes
+                      <FileText size={13} className="text-muted-foreground" />Notes
                       <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                     </Label>
-                    <Textarea
-                      id="g-notes"
-                      value={notes}
+                    <Textarea id="g-notes" value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any special requests..."
-                      className="resize-none min-h-[80px]"
-                    />
+                      placeholder="Any special requests..." className="resize-none min-h-[80px]" />
                   </div>
                 )}
-
                 {error && (
                   <p className="text-sm text-destructive flex items-center gap-2">
-                    <AlertCircle size={14} />
-                    {error}
+                    <AlertCircle size={14} />{error}
                   </p>
                 )}
-
-                <Button
-                  type="submit"
-                  disabled={joining || !name.trim()}
-                  className="w-full h-11 font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0"
-                >
-                  {joining ? (
-                    <><Loader2 size={16} className="mr-2 animate-spin" />Joining…</>
-                  ) : (
-                    "Join Queue"
-                  )}
+                <Button type="submit" disabled={joining || !name.trim()}
+                  className="w-full h-11 font-semibold bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 border-0">
+                  {joining ? <><Loader2 size={16} className="mr-2 animate-spin" />Joining…</> : "Join Queue"}
                 </Button>
               </form>
             </CardContent>
           </Card>
         )}
 
-       {!myEntry && queueFull && queue.is_open && !queue.is_paused && (
+        {!myEntry && queueFull && queue.is_open && !isPaused && (
           <Card className="border-border/40 bg-muted/10">
             <CardContent className="p-5 text-center space-y-2">
               <Users size={32} className="mx-auto text-muted-foreground/60" />
@@ -537,23 +632,16 @@ export default function QueuePublicClient() {
               Currently waiting — {waitingEntries.length}
             </p>
             {waitingEntries.map((entry) => (
-              <div
-                key={entry.id}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
-                  myEntry?.id === entry.id
-                    ? "border-blue-500/30 bg-blue-500/5"
-                    : "border-border/30 bg-card/40"
-                }`}
-              >
+              <div key={entry.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                myEntry?.id === entry.id ? "border-blue-500/30 bg-blue-500/5" : "border-border/30 bg-card/40"
+              }`}>
                 <div className="w-7 h-7 rounded-full bg-muted/60 flex items-center justify-center text-xs font-bold shrink-0">
                   {entry.position}
                 </div>
                 <span className="text-sm font-medium flex-1 truncate">
-                  {myEntry?.id === entry.id ? (
-                    <span className="text-blue-400">{entry.guest_name} (you)</span>
-                  ) : (
-                    entry.guest_name
-                  )}
+                  {myEntry?.id === entry.id
+                    ? <span className="text-blue-400">{entry.guest_name} (you)</span>
+                    : entry.guest_name}
                 </span>
                 {entry.status === "called" && (
                   <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">

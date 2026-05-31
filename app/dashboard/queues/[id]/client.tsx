@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { QueueQrCodeDialog } from "@/components/queue-qr-code-dialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ type Entry = {
   guest_name: string;
   guest_phone: string | null;
   notes: string | null;
+  admin_notes: string | null;
   position: number;
   status: "waiting" | "called" | "served" | "no_show" | "left";
   joined_at: string;
@@ -130,7 +132,7 @@ export default function AdminQueueDetailClient() {
       .subscribe();
 
     return () => { sb.removeChannel(channel); };
-  }, [mounted, id]);
+  }, [mounted, id, fetchData]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -233,6 +235,21 @@ async function openQueue() {
     if (queue?.is_open) await sb.rpc("open_queue", { p_queue_id: id });
   }
 
+  async function updateAdminNote(entryId: string, adminNotes: string) {
+    const sb = getSB();
+
+    const { error } = await sb
+      .from("queue_entries")
+      .update({
+        admin_notes: adminNotes.trim() || null,
+      })
+      .eq("id", entryId);
+
+    if (error) {
+      console.error("Failed to update admin note:", error);
+    }
+  }
+
   function copyLink() {
     navigator.clipboard.writeText(guestUrl);
     setCopied(true);
@@ -294,6 +311,7 @@ async function openQueue() {
               <Copy size={14} className="mr-1.5" />
               {copied ? "Copied!" : "Copy link"}
             </Button>
+            <QueueQrCodeDialog url={guestUrl} queueName={queue.name} />
             <Link href={guestUrl} target="_blank">
               <Button variant="outline" size="sm" className="h-9">
                 <ExternalLink size={14} className="mr-1.5" />
@@ -422,6 +440,7 @@ async function openQueue() {
                   onServed={() => markServed(entry.id)}
                   onNoShow={() => markNoShow(entry.id)}
                   onRemove={() => removeEntry(entry.id)}
+                  onUpdateAdminNote={(note) => updateAdminNote(entry.id, note)}
                 />
               ))}
             </div>
@@ -445,6 +464,7 @@ async function openQueue() {
                   onServed={() => markServed(entry.id)}
                   onNoShow={() => markNoShow(entry.id)}
                   onRemove={() => removeEntry(entry.id)}
+                  onUpdateAdminNote={(note) => updateAdminNote(entry.id, note)}
                 />
               ))
             )}
@@ -500,7 +520,7 @@ async function openQueue() {
 // ── GuestRow ──────────────────────────────────────────────────────────────────
 
 function GuestRow({
-  entry, variant, noShowTracking, onServed, onNoShow, onRemove,
+  entry, variant, noShowTracking, onServed, onNoShow, onRemove, onUpdateAdminNote,
 }: {
   entry: Entry;
   variant: "waiting" | "called";
@@ -508,14 +528,35 @@ function GuestRow({
   onServed: () => void;
   onNoShow: () => void;
   onRemove: () => void;
+  onUpdateAdminNote: (note: string) => Promise<void>;
 }) {
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [adminNoteDraft, setAdminNoteDraft] = useState(entry.admin_notes ?? "");
+  const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    setAdminNoteDraft(entry.admin_notes ?? "");
+  }, [entry.admin_notes]);
+
+  async function saveAdminNote() {
+    setSavingNote(true);
+    await onUpdateAdminNote(adminNoteDraft);
+    setSavingNote(false);
+    setIsEditingNote(false);
+  }
+
+  function cancelAdminNoteEdit() {
+    setAdminNoteDraft(entry.admin_notes ?? "");
+    setIsEditingNote(false);
+  }
+
   return (
     <div className={`rounded-xl border p-4 transition-colors ${
       variant === "called"
         ? "border-emerald-500/20 bg-emerald-500/5"
         : "border-border/40 bg-card/60"
     }`}>
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
           variant === "called"
             ? "bg-emerald-500/20 text-emerald-400"
@@ -533,6 +574,7 @@ function GuestRow({
               </Badge>
             )}
           </div>
+
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
             {entry.guest_phone && (
               <span className="text-xs text-muted-foreground">{entry.guest_phone}</span>
@@ -541,8 +583,77 @@ function GuestRow({
               Joined {new Date(entry.joined_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
+
           {entry.notes && (
             <p className="text-xs text-muted-foreground mt-1 italic">"{entry.notes}"</p>
+          )}
+
+          {!entry.admin_notes && !isEditingNote ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="mt-2 h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setIsEditingNote(true)}
+            >
+              Add admin note
+            </Button>
+          ) : (
+            <div className="mt-3 rounded-lg border border-border/30 bg-muted/10 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Admin note
+                </p>
+
+                {!isEditingNote && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setIsEditingNote(true)}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              {isEditingNote ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={adminNoteDraft}
+                    onChange={(e) => setAdminNoteDraft(e.target.value)}
+                    placeholder="Add an internal note for this guest..."
+                    className="min-h-[72px] w-full resize-none rounded-md border border-border/40 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={cancelAdminNoteEdit}
+                      disabled={savingNote}
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={saveAdminNote}
+                      disabled={savingNote}
+                    >
+                      {savingNote ? "Saving..." : "Save note"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {entry.admin_notes}
+                </p>
+              )}
+            </div>
           )}
         </div>
 
