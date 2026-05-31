@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { QueueQrCodeDialog } from "@/components/queue-qr-code-dialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ type Queue = {
   no_show_tracking: boolean;
   auto_close: boolean;
   is_open: boolean;
+  is_paused: boolean;
   is_active: boolean;
 };
 
@@ -39,6 +41,7 @@ type Entry = {
   guest_name: string;
   guest_phone: string | null;
   notes: string | null;
+  admin_notes: string | null;
   position: number;
   status: "waiting" | "called" | "served" | "no_show" | "left";
   joined_at: string;
@@ -129,22 +132,71 @@ export default function AdminQueueDetailClient() {
       .subscribe();
 
     return () => { sb.removeChannel(channel); };
-  }, [mounted, id]);
+  }, [mounted, id, fetchData]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  async function toggleOpen() {
-    if (!queue) return;
-    setToggling(true);
-    const sb = getSB();
-    if (queue.is_open) {
-      await sb.rpc("close_queue", { p_queue_id: id, p_clear: false });
-    } else {
-      await sb.rpc("open_queue", { p_queue_id: id });
-    }
-    setToggling(false);
-  }
+async function pauseQueue() {
+  if (!queue) return;
+  setToggling(true);
 
+  const sb = getSB();
+
+  await sb
+    .from("queues")
+    .update({ is_open: true, is_paused: true })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
+
+async function resumeQueue() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  await sb
+    .from("queues")
+    .update({ is_open: true, is_paused: false })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
+
+async function closeQueue() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  await sb.rpc("close_queue", { p_queue_id: id, p_clear: false });
+  await sb
+    .from("queues")
+    .update({ is_paused: false })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
+
+async function openQueue() {
+  if (!queue) return;
+  setToggling(true);
+
+  const sb = getSB();
+
+  await sb.rpc("open_queue", { p_queue_id: id });
+  await sb
+    .from("queues")
+    .update({ is_paused: false })
+    .eq("id", id);
+
+  await fetchData();
+  setToggling(false);
+}
   async function callNext() {
     const next = entries.find((e) => e.status === "waiting");
     if (!next) return;
@@ -181,6 +233,21 @@ export default function AdminQueueDetailClient() {
     const sb = getSB();
     await sb.rpc("close_queue", { p_queue_id: id, p_clear: true });
     if (queue?.is_open) await sb.rpc("open_queue", { p_queue_id: id });
+  }
+
+  async function updateAdminNote(entryId: string, adminNotes: string) {
+    const sb = getSB();
+
+    const { error } = await sb
+      .from("queue_entries")
+      .update({
+        admin_notes: adminNotes.trim() || null,
+      })
+      .eq("id", entryId);
+
+    if (error) {
+      console.error("Failed to update admin note:", error);
+    }
   }
 
   function copyLink() {
@@ -231,7 +298,7 @@ export default function AdminQueueDetailClient() {
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                 : "bg-muted/40 text-muted-foreground border-border/40"
               }>
-                {queue.is_open ? "Open" : "Closed"}
+                {queue.is_paused ? "Paused" : queue.is_open ? "Open" : "Closed"}
               </Badge>
             </div>
             {queue.description && (
@@ -244,24 +311,72 @@ export default function AdminQueueDetailClient() {
               <Copy size={14} className="mr-1.5" />
               {copied ? "Copied!" : "Copy link"}
             </Button>
+            <QueueQrCodeDialog url={guestUrl} queueName={queue.name} />
             <Link href={guestUrl} target="_blank">
               <Button variant="outline" size="sm" className="h-9">
                 <ExternalLink size={14} className="mr-1.5" />
                 Guest view
               </Button>
             </Link>
-            <Button
-              size="sm"
-              onClick={toggleOpen}
-              disabled={toggling}
-              className={queue.is_open
-                ? "h-9 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
-                : "h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
-              }
-            >
-              <Power size={14} className="mr-1.5" />
-              {toggling ? "…" : queue.is_open ? "Close queue" : "Open queue"}
-            </Button>
+            {queue.is_open && !queue.is_paused && (
+  <>
+    <Button
+      size="sm"
+      onClick={pauseQueue}
+      disabled={toggling}
+      className="h-9 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+    >
+      <Power size={14} className="mr-1.5" />
+      Pause queue
+    </Button>
+
+    <Button
+      size="sm"
+      onClick={closeQueue}
+      disabled={toggling}
+      className="h-9 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+    >
+      <Power size={14} className="mr-1.5" />
+      Close queue
+    </Button>
+  </>
+)}
+
+    {queue.is_open && queue.is_paused && (
+      <>
+        <Button
+          size="sm"
+          onClick={resumeQueue}
+          disabled={toggling}
+          className="h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+        >
+          <Power size={14} className="mr-1.5" />
+          Resume queue
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={closeQueue}
+          disabled={toggling}
+          className="h-9 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+        >
+          <Power size={14} className="mr-1.5" />
+          Close queue
+        </Button>
+      </>
+    )}
+
+    {!queue.is_open && (
+      <Button
+        size="sm"
+        onClick={openQueue}
+        disabled={toggling}
+        className="h-9 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+      >
+        <Power size={14} className="mr-1.5" />
+        Open queue
+      </Button>
+    )}
           </div>
         </div>
       </div>
@@ -325,6 +440,7 @@ export default function AdminQueueDetailClient() {
                   onServed={() => markServed(entry.id)}
                   onNoShow={() => markNoShow(entry.id)}
                   onRemove={() => removeEntry(entry.id)}
+                  onUpdateAdminNote={(note) => updateAdminNote(entry.id, note)}
                 />
               ))}
             </div>
@@ -348,6 +464,7 @@ export default function AdminQueueDetailClient() {
                   onServed={() => markServed(entry.id)}
                   onNoShow={() => markNoShow(entry.id)}
                   onRemove={() => removeEntry(entry.id)}
+                  onUpdateAdminNote={(note) => updateAdminNote(entry.id, note)}
                 />
               ))
             )}
@@ -403,7 +520,7 @@ export default function AdminQueueDetailClient() {
 // ── GuestRow ──────────────────────────────────────────────────────────────────
 
 function GuestRow({
-  entry, variant, noShowTracking, onServed, onNoShow, onRemove,
+  entry, variant, noShowTracking, onServed, onNoShow, onRemove, onUpdateAdminNote,
 }: {
   entry: Entry;
   variant: "waiting" | "called";
@@ -411,14 +528,36 @@ function GuestRow({
   onServed: () => void;
   onNoShow: () => void;
   onRemove: () => void;
+  onUpdateAdminNote: (note: string) => Promise<void>;
 }) {
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [adminNoteDraft, setAdminNoteDraft] = useState(entry.admin_notes ?? "");
+  const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    if (isEditingNote) return;
+    setAdminNoteDraft(entry.admin_notes ?? "");
+  }, [entry.admin_notes, isEditingNote]);
+
+  async function saveAdminNote() {
+    setSavingNote(true);
+    await onUpdateAdminNote(adminNoteDraft);
+    setSavingNote(false);
+    setIsEditingNote(false);
+  }
+
+  function cancelAdminNoteEdit() {
+    setAdminNoteDraft(entry.admin_notes ?? "");
+    setIsEditingNote(false);
+  }
+
   return (
     <div className={`rounded-xl border p-4 transition-colors ${
       variant === "called"
         ? "border-emerald-500/20 bg-emerald-500/5"
         : "border-border/40 bg-card/60"
     }`}>
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
           variant === "called"
             ? "bg-emerald-500/20 text-emerald-400"
@@ -436,6 +575,7 @@ function GuestRow({
               </Badge>
             )}
           </div>
+
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
             {entry.guest_phone && (
               <span className="text-xs text-muted-foreground">{entry.guest_phone}</span>
@@ -444,8 +584,77 @@ function GuestRow({
               Joined {new Date(entry.joined_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
+
           {entry.notes && (
             <p className="text-xs text-muted-foreground mt-1 italic">"{entry.notes}"</p>
+          )}
+
+          {!entry.admin_notes && !isEditingNote ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="mt-2 h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setIsEditingNote(true)}
+            >
+              Add admin note
+            </Button>
+          ) : (
+            <div className="mt-3 rounded-lg border border-border/30 bg-muted/10 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Admin note
+                </p>
+
+                {!isEditingNote && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setIsEditingNote(true)}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              {isEditingNote ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={adminNoteDraft}
+                    onChange={(e) => setAdminNoteDraft(e.target.value)}
+                    placeholder="Add an internal note for this guest..."
+                    className="min-h-[72px] w-full resize-none rounded-md border border-border/40 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={cancelAdminNoteEdit}
+                      disabled={savingNote}
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={saveAdminNote}
+                      disabled={savingNote}
+                    >
+                      {savingNote ? "Saving..." : "Save note"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {entry.admin_notes}
+                </p>
+              )}
+            </div>
           )}
         </div>
 
